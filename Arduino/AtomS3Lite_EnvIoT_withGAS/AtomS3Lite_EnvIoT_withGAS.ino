@@ -174,8 +174,8 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("going to sleep for ");Serial.println(sleep_time_in_us);
   uint32_t sleep_time_in_us = (SLEEP_DURATION * 60 * 1000 - timestamp) * 1000 + SLEEP_DURATION_ADJUST * 1000;
+  Serial.print("going to sleep for ");Serial.println(sleep_time_in_us);
   if (SLEEP_AND_REPEAT){
     esp_sleep_enable_timer_wakeup(sleep_time_in_us);  // deep sleep for SLEEP_DULATION
     esp_deep_sleep_start();    

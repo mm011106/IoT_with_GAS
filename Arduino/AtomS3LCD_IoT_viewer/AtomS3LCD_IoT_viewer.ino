@@ -1,3 +1,18 @@
+// 
+// AtomS3LCD_IoT_viewer.ino
+//    2025/4/8    miyamoto
+// 
+// M5Stack AtomS3(LCD付き)による データビュア
+//    コントローラ（マイコン）はM5Stack社 AtomS3を使用
+//    AtomS3Lite_EnvIoT_withGAS.inoで取得した環境データを
+//    GoogleSheetAPIから取得して表示する
+// 
+// 機能：
+//    LCD部のスイッチを押すことで、表示データを最新に更新
+//    定時更新はしない
+// 
+
+
 #include <M5Unified.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -5,7 +20,7 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h> // JSON 処理ライブラリ
 
-#include "config.h"
+#include "config.h"   // 設定ファイル（WiFi SSID, GAS API URL）をインクルード
 
 String formattedTemperature = "";
 String formattedDate = "";
@@ -14,8 +29,6 @@ String formattedTime = "";
 bool dataRequested = false; // データ取得が実行されたかフラグ
 
 unsigned long lastDataTime = 0; // 前回のデータ取得時刻 (millis())
-const unsigned long dataInterval = 600000; // データ取得間隔 (1時間)
-
 
 // メッセージタイプを列挙型で定義
 enum MessageType {
@@ -52,7 +65,7 @@ void setup() {
 
   // GAS Web API を呼び出す
   // getGasData();
-  getGasData_gemini();
+  getGasData();
   dataRequested = true;
   viewerWifiCtrl(false); // WiFi 切断
 
@@ -76,7 +89,7 @@ void loop() {
 
     if (dataRequested) { // 初回データ取得が完了していれば再取得
       viewerLcdSetMessage(RETRIEVING_DATA);
-      getGasData_gemini();
+      getGasData();
     }
     // チャタリング防止
     delay(500); // 0.5秒待つ
@@ -87,7 +100,12 @@ void loop() {
 
 
 
-
+// WiFi 接続・切断を制御する関数
+// 引数に true を指定すると接続、false を指定すると切断
+// 接続時：
+//    WiFi 接続に成功した場合は true を、それ以外ではfalseを返す
+//    接続に10秒以上かかったら失敗として、接続せずに帰る
+// 
 bool viewerWifiCtrl(boolean wifiCtrl) {
 
   if (wifiCtrl == true) {
@@ -121,6 +139,10 @@ bool viewerWifiCtrl(boolean wifiCtrl) {
   return true;
 }
 
+
+// LCD にメッセージを表示する関数
+// 引数に列挙型MessageTypeを指定して、表示するメッセージを選択
+// 
 void viewerLcdSetMessage(MessageType messageType) {
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.fillScreen(BLACK);
@@ -131,22 +153,27 @@ void viewerLcdSetMessage(MessageType messageType) {
       M5.Lcd.setTextColor(TFT_WHITE);
       M5.Lcd.println("Connecting to WiFi...");
       break;
+
     case DISCONNECTING_WIFI:
       M5.Lcd.setTextColor(TFT_WHITE);
       M5.Lcd.println("Disconnecting WiFi...");
       break;
+    
     case RETRIEVING_DATA:
       M5.Lcd.setTextColor(TFT_CYAN);
       M5.Lcd.println("Retrieving data...");
       break;
+
     case HTTP_ERROR:
       M5.Lcd.setTextColor(TFT_RED);
       M5.Lcd.println("HTTP Error!\nTry again.");
       break;
+
     case WIFI_CONNECTION_FAILED:
       M5.Lcd.setTextColor(TFT_ORANGE);
       M5.Lcd.println("WiFi connection failed.");
       break;
+
     case RESULT:
       M5.Lcd.setTextColor(WHITE);
       M5.Lcd.printf("%s\n", formattedDate.c_str());
@@ -158,6 +185,7 @@ void viewerLcdSetMessage(MessageType messageType) {
       M5.Lcd.setTextColor(GREEN);
       M5.Lcd.printf("%s C\n", formattedTemperature.c_str());
       break;
+
     default:
       M5.Lcd.setTextColor(TFT_RED);
       M5.Lcd.println("Unknown message type");
@@ -165,8 +193,9 @@ void viewerLcdSetMessage(MessageType messageType) {
   }
 }
 
-
-void getGasData_gemini(){
+// Google Apps Script の Web API を呼び出す関数
+// 取得したデータは JSON 形式で返される
+void getGasData(){
 
   viewerLcdSetMessage(RETRIEVING_DATA);
   HTTPClient http;
@@ -227,8 +256,9 @@ void getGasData_gemini(){
         formattedDate = year + "/" + month + "/" + day + " ";
         formattedTime  = hour + ":" + minute;
 
+        // temperatureStr を桁数指定した文字列に変換
         char stringBuffer[10];
-        dtostrf(temperatureStr.toFloat(), 3, 1, stringBuffer);
+        dtostrf(temperatureStr.toFloat(), 3, 1, stringBuffer); // floatをxx.xの桁数で文字列に変換
         temperatureStr = String(stringBuffer); // char配列からString型へ変換
 
         if (temperatureStr.toFloat() >= 0) {
@@ -258,45 +288,5 @@ void getGasData_gemini(){
   if (redirectCount >= maxRedirects) {
     Serial.println("Error: Too many redirects");
   }
-  
 
-}
-
-
-void getGasData() {
-  HTTPClient http;
-  WiFiClientSecure client;
-  client.setInsecure();
-
-  http.begin(client, GAS_URL);
-
-    //send a GET request
-    http.GET();
-
-    //receive a response
-    String response = http.getString();
-    Serial.println("Done");
-    Serial.println(response);
-
-  http.end();
-
-  //redirect
-  int from = response.indexOf("<A");
-  int to = response.indexOf("A>");
-  String destination = response.substring(from + 9, to - 8);
-  destination.replace("&amp;", "&");
-
-  Serial.println("RedirectURL:");
-  Serial.println(destination);
-
-  http.begin(client, destination);
-    http.GET();
-
-    //receive a response
-    response = http.getString();
-    Serial.println("Done");
-    Serial.println(response);
-
-    //close the connection
-  http.end();
 }
