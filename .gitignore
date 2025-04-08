@@ -1,0 +1,10 @@
+# VS Code settings
+.vscode/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ignore all config.h files in subdirectories
+**/config.h
