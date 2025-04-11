@@ -73,3 +73,6 @@ HTTPでの読み出しリクエスト（GETメソッド）に応答して、表�
 - 1アクセスあたりのGASのCPU利用時間は制限されています。
 - このGASコードはGoogleの運用方針転換で突然動かなくなる可能性もありますのでご留意ください。
   
+## コメント・ご意見など
+コメントなどいただけるとありがたいです。[Discussionのページ](http://github.com/mm011106/IoT_with_GAS/discussions/categories/general)に投稿をお願いします。
+
