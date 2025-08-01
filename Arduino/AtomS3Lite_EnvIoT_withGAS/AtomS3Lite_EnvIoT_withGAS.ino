@@ -39,7 +39,7 @@ uint32_t timestamp = 0; // 測定時間を計測して保存する[ms]
 
 void post(const char* sheet_name, float temperature, float humidity, float pressure) {
   HTTPClient http;
-  http.begin(GAS_URL);
+  http.begin(API_URL);
 
   http.addHeader("Content-Type", "application/json");
   
@@ -148,9 +148,9 @@ void setup() {
     if (BATTERY_OPERATION){
       float v_battery = read_battery_level();
       Serial.print("Battery: "); Serial.print(v_battery); Serial.println(" V");
-      post(SHEET_NAME, temp_event.temperature, humidity_event.relative_humidity, v_battery);  // データを送信 気圧の代わりにバッテリ電圧を出力
+      post(SENSOR_ID, temp_event.temperature, humidity_event.relative_humidity, v_battery);  // データを送信 気圧の代わりにバッテリ電圧を出力
     } else {
-      post(SHEET_NAME, temp_event.temperature, humidity_event.relative_humidity, pressure);  // データを送信
+      post(SENSOR_ID, temp_event.temperature, humidity_event.relative_humidity, pressure);  // データを送信
     }
 
   }
